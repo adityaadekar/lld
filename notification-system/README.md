@@ -1,7 +1,9 @@
 # Notification System LLD
 
 This folder contains a low-level design for a notification system that supports
-email, SMS, and push notifications.
+email, SMS, and push notifications. Email and push channels can deliver HTML
+messages when a rich body is provided, while every message still includes a
+plain-text fallback for channels that do not support HTML.
 
 ## Goals
 
@@ -9,6 +11,8 @@ email, SMS, and push notifications.
 - Use the Observer pattern for delivery fan-out.
 - Use the Decorator pattern for dynamic message enrichment, such as adding a
   signature only when it is required.
+- Prefer interfaces for behavioral contracts, using default interface methods
+  where shared behavior does not require an abstract base class.
 - Keep the design open for more optional behaviors like tracking footers,
   confidentiality notes, and urgency prefixes.
 
@@ -33,7 +37,9 @@ notification type they support.
 ### Decorator
 
 `NotificationMessage` represents the message content. `PlainNotificationMessage`
-is the base message, and decorators wrap it when optional behavior is required.
+contains plain text only, while `HtmlNotificationMessage` adds an optional HTML
+body with the same plain-text fallback. Decorators wrap either message type when
+optional behavior is required.
 
 Decorators included:
 
@@ -55,6 +61,23 @@ message = new SignatureDecorator(message, "Billing Team");
 message = new TrackingFooterDecorator(message, "PAY-1001");
 ```
 
+HTML-capable messages can be sent through email and push channels:
+
+```java
+NotificationMessage message = new HtmlNotificationMessage(
+    "Payment received",
+    "Your payment has been processed.",
+    "<p>Your payment has been <strong>processed</strong>.</p>"
+);
+```
+
+Decorator and subscriber extension points are modeled as interfaces:
+
+- `NotificationMessageDecorator` supplies default delegation to a wrapped
+  `NotificationMessage`.
+- `ChannelSubscriber` supplies default observer delivery behavior for a
+  `DeliveryChannel`.
+
 ## Class Structure
 
 ```text
@@ -74,6 +97,8 @@ notification-system
     │   ├── TrackingFooterDecorator.java
     │   └── UrgencyPrefixDecorator.java
     ├── model
+    │   ├── HtmlEscaper.java
+    │   ├── HtmlNotificationMessage.java
     │   ├── NotificationMessage.java
     │   ├── NotificationRequest.java
     │   ├── NotificationType.java
@@ -106,4 +131,11 @@ From the repository root:
 ```bash
 javac -d /tmp/notification-system-classes $(rg --files notification-system/src/main/java -g '*.java')
 java -cp /tmp/notification-system-classes notificationsystem.Demo
+```
+
+Run the lightweight test harness:
+
+```bash
+javac -d /tmp/notification-system-classes $(rg --files notification-system/src/main/java notification-system/src/test/java -g '*.java')
+java -cp /tmp/notification-system-classes notificationsystem.NotificationSystemTest
 ```

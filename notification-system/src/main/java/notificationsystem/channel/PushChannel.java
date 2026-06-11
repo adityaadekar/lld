@@ -14,7 +14,9 @@ public class PushChannel implements DeliveryChannel {
     public DeliveryReceipt deliver(NotificationRequest request) {
         System.out.println("Sending PUSH notification to device " + request.recipient());
         System.out.println(request.message().subject());
-        System.out.println(firstLine(request.message().body()));
+        System.out.println("Text preview: " + firstLine(request.message().body()));
+        request.message().htmlBody()
+                .ifPresent(htmlBody -> System.out.println("HTML payload: " + firstLine(htmlBody)));
         return new DeliveryReceipt(
                 request.id(),
                 type(),

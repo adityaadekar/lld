@@ -1,19 +1,33 @@
 package notificationsystem.decorator;
 
 import java.util.Objects;
+import java.util.Optional;
+import notificationsystem.model.HtmlEscaper;
 import notificationsystem.model.NotificationMessage;
 
-public class TrackingFooterDecorator extends NotificationMessageDecorator {
+public class TrackingFooterDecorator implements NotificationMessageDecorator {
+    private final NotificationMessage wrappedMessage;
     private final String trackingId;
 
     public TrackingFooterDecorator(NotificationMessage wrappedMessage, String trackingId) {
-        super(wrappedMessage);
+        this.wrappedMessage = Objects.requireNonNull(wrappedMessage, "wrappedMessage cannot be null");
         this.trackingId = requireText(trackingId, "trackingId");
+    }
+
+    @Override
+    public NotificationMessage wrappedMessage() {
+        return wrappedMessage;
     }
 
     @Override
     public String body() {
         return wrappedMessage().body() + "\n\nTracking ID: " + trackingId;
+    }
+
+    @Override
+    public Optional<String> htmlBody() {
+        return wrappedMessage().htmlBody()
+                .map(htmlBody -> htmlBody + "<br><br>Tracking ID: " + HtmlEscaper.escape(trackingId));
     }
 
     private static String requireText(String value, String fieldName) {

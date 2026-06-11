@@ -6,6 +6,7 @@ import notificationsystem.decorator.ConfidentialityFooterDecorator;
 import notificationsystem.decorator.SignatureDecorator;
 import notificationsystem.decorator.TrackingFooterDecorator;
 import notificationsystem.decorator.UrgencyPrefixDecorator;
+import notificationsystem.model.HtmlNotificationMessage;
 import notificationsystem.model.NotificationMessage;
 import notificationsystem.model.NotificationRequest;
 import notificationsystem.model.NotificationType;
@@ -37,9 +38,10 @@ public final class Demo {
     }
 
     private static NotificationRequest signedEmailRequest() {
-        NotificationMessage message = new PlainNotificationMessage(
+        NotificationMessage message = new HtmlNotificationMessage(
                 "Invoice generated",
-                "Your invoice for this billing cycle is ready.");
+                "Your invoice for this billing cycle is ready.",
+                "<p>Your invoice for this billing cycle is <strong>ready</strong>.</p>");
         message = new SignatureDecorator(message, "Finance Team");
         message = new TrackingFooterDecorator(message, "INV-2026-001");
 
@@ -73,9 +75,10 @@ public final class Demo {
     }
 
     private static NotificationRequest urgentPushRequest() {
-        NotificationMessage message = new PlainNotificationMessage(
+        NotificationMessage message = new HtmlNotificationMessage(
                 "Security alert",
-                "A new device signed in to your account.");
+                "A new device signed in to your account.",
+                "<p><strong>A new device</strong> signed in to your account.</p>");
         message = new UrgencyPrefixDecorator(message);
         message = new ConfidentialityFooterDecorator(message);
 
