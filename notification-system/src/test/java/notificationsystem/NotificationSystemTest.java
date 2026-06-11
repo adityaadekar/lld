@@ -5,12 +5,15 @@ import java.io.PrintStream;
 import java.util.Collections;
 import notificationsystem.channel.EmailChannel;
 import notificationsystem.channel.PushChannel;
+import notificationsystem.decorator.MessageDecorations;
 import notificationsystem.decorator.SignatureDecorator;
 import notificationsystem.decorator.TrackingFooterDecorator;
 import notificationsystem.model.HtmlNotificationMessage;
 import notificationsystem.model.NotificationMessage;
+import notificationsystem.model.NotificationMessages;
 import notificationsystem.model.NotificationRequest;
 import notificationsystem.model.NotificationType;
+import notificationsystem.service.NotificationService;
 
 public final class NotificationSystemTest {
     private NotificationSystemTest() {
@@ -18,6 +21,7 @@ public final class NotificationSystemTest {
 
     public static void main(String[] args) {
         decoratedHtmlMessageKeepsRichBody();
+        simplifiedClientApiSendsDecoratedEmail();
         emailChannelDeliversHtmlBody();
         pushChannelDeliversHtmlPayload();
         System.out.println("All notification system tests passed.");
@@ -36,6 +40,23 @@ public final class NotificationSystemTest {
         assertContains(message.body(), "Release & Ops <Team>", "plain text signature");
         assertContains(htmlBody, "Release &amp; Ops &lt;Team&gt;", "escaped html signature");
         assertContains(htmlBody, "DEPLOY&lt;42&gt;", "escaped html tracking id");
+    }
+
+    private static void simplifiedClientApiSendsDecoratedEmail() {
+        NotificationService notifications = NotificationService.createDefault();
+        NotificationMessage message = NotificationMessages.html(
+                "Welcome",
+                "Welcome to the service.",
+                "<p>Welcome to the <strong>service</strong>.</p>");
+
+        String output = captureOutput(() -> notifications.sendEmail(
+                "customer@example.com",
+                message,
+                MessageDecorations.signature("Customer Success")));
+
+        assertContains(output, "Sending EMAIL to customer@example.com", "email delivery");
+        assertContains(output, "Regards,<br>Customer Success", "html signature");
+        assertContains(output, "Audit log: notification N-1001 queued for EMAIL", "generated request id");
     }
 
     private static void emailChannelDeliversHtmlBody() {
