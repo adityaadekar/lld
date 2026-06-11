@@ -14,7 +14,9 @@ public class EmailChannel implements DeliveryChannel {
     public DeliveryReceipt deliver(NotificationRequest request) {
         System.out.println("Sending EMAIL to " + request.recipient());
         System.out.println("Subject: " + request.message().subject());
-        System.out.println(request.message().body());
+        System.out.println("Text body: " + request.message().body());
+        request.message().htmlBody()
+                .ifPresent(htmlBody -> System.out.println("HTML body: " + htmlBody));
         return new DeliveryReceipt(
                 request.id(),
                 type(),
