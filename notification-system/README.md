@@ -16,6 +16,32 @@ plain-text fallback for channels that do not support HTML.
 - Keep the design open for more optional behaviors like tracking footers,
   confidentiality notes, and urgency prefixes.
 
+## Client API
+
+Application/client code should stay small. It gets a configured
+`NotificationService`, creates a message, passes a recipient, and lists the
+decorations needed for that send:
+
+```java
+NotificationService notifications = NotificationService.createDefault();
+
+notifications.sendEmail(
+    "customer@example.com",
+    NotificationMessages.html(
+        "Payment received",
+        "Your payment has been processed.",
+        "<p>Your payment has been <strong>processed</strong>.</p>"
+    ),
+    MessageDecorations.signature("Billing Team"),
+    MessageDecorations.tracking("PAY-1001")
+);
+```
+
+The service hides request IDs, publisher/subscriber registration, channel
+selection, and request construction. Those are internal system responsibilities,
+not client responsibilities. `DefaultNotificationService` is package-internal
+wiring behind the public `NotificationService` interface.
+
 ## Design Patterns Used
 
 ### Observer
@@ -48,23 +74,17 @@ Decorators included:
 - `ConfidentialityFooterDecorator`
 - `UrgencyPrefixDecorator`
 
-Because decorators share the same `NotificationMessage` interface, callers can
-compose them in any order:
+Because decorators share the same `NotificationMessage` interface, the service
+can compose them in any order:
 
 ```java
-NotificationMessage message = new PlainNotificationMessage(
-    "Payment received",
-    "Your payment has been processed."
-);
-
-message = new SignatureDecorator(message, "Billing Team");
-message = new TrackingFooterDecorator(message, "PAY-1001");
+MessageDecoration decoration = MessageDecorations.signature("Billing Team");
 ```
 
 HTML-capable messages can be sent through email and push channels:
 
 ```java
-NotificationMessage message = new HtmlNotificationMessage(
+NotificationMessage message = NotificationMessages.html(
     "Payment received",
     "Your payment has been processed.",
     "<p>Your payment has been <strong>processed</strong>.</p>"
@@ -92,6 +112,8 @@ notification-system
     │   └── SmsChannel.java
     ├── decorator
     │   ├── ConfidentialityFooterDecorator.java
+    │   ├── MessageDecoration.java
+    │   ├── MessageDecorations.java
     │   ├── NotificationMessageDecorator.java
     │   ├── SignatureDecorator.java
     │   ├── TrackingFooterDecorator.java
@@ -100,10 +122,11 @@ notification-system
     │   ├── HtmlEscaper.java
     │   ├── HtmlNotificationMessage.java
     │   ├── NotificationMessage.java
+    │   ├── NotificationMessages.java
     │   ├── NotificationRequest.java
     │   ├── NotificationType.java
     │   └── PlainNotificationMessage.java
-    └── observer
+    ├── observer
         ├── ChannelSubscriber.java
         ├── EmailSubscriber.java
         ├── NotificationLogObserver.java
@@ -112,17 +135,19 @@ notification-system
         ├── NotificationSubject.java
         ├── PushSubscriber.java
         └── SmsSubscriber.java
+    └── service
+        ├── DefaultNotificationService.java
+        └── NotificationService.java
 ```
 
 ## Main Flow
 
-1. Build a `NotificationMessage`.
-2. Wrap it with decorators only for the current scenario.
-3. Create a `NotificationRequest` with recipient, type, message, and metadata.
-4. Register observers with `NotificationPublisher`.
-5. Publish the request.
-6. Matching channel subscriber delivers the notification.
-7. Other observers, such as logging, can react independently.
+1. Client code obtains a configured `NotificationService`.
+2. Client code sends a recipient, message, and optional decorations.
+3. The service applies decorations and creates a `NotificationRequest`.
+4. The service publishes the request through the configured publisher.
+5. Matching channel subscriber delivers the notification.
+6. Other observers, such as logging, can react independently.
 
 ## Running the Demo
 
